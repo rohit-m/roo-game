@@ -1,5 +1,5 @@
 $(function () {
-    var stage, player, powerupSprite, powerupSingle, powerUpH = 49, powerUpW = 50, stageW = 900, stageH = 500, background, playerW = 100, playerH = 92;
+    var start = false, startText = new createjs.Text("Click To Start", "40px Helvetica", "#eb2546"), endText = new createjs.Text("Ohh no! You died.", "40px Helvetica", "#eb2546"),stage, player, powerupSprite, powerupSingle, powerUpH = 49, powerUpW = 50, stageW = 900, stageH = 500, background, playerW = 100, playerH = 92;
     var upPressed, downPressed, vy = 5, tickCounter = 0;
     var obstacleTop = new createjs.Shape(), obstacleContainerTop = new createjs.Container(),
         obstacleW = 50, obstacleH = 50, obstacleLoop = 500, obstacleSpeed = 5,
@@ -7,7 +7,7 @@ $(function () {
     var bgSpriteW = 1100;
     var bgSpriteH = 326;
     var finalScore = 0, scoreText = new createjs.Text("0", "40px Helvetica", "#eb2546");
-    var pointSound;
+    var pointSound, runOnce = true;
 
     // init bunch of sounds
     ion.sound({
@@ -21,23 +21,19 @@ $(function () {
         multiplay: true,
         volume: 0.9
     });
-
-    var a = true;
     $(window).resize(function () {
         resize();
     });
 
     $(document).click(function(){
         upPressed = true;
+        if(!start) {
+            start = true;
+        }
     });
 
     init();
     initSprites();
-
-    var myscore = setInterval(score, 1000);
-    var powerupGen = setInterval(genPowerup, 2000);
-    var topObs = setInterval(genTopObstacles, 1000);
-    var botObs = setInterval(genBottomObstacles, 1000);
 
     function score() {
         finalScore++;
@@ -57,40 +53,49 @@ $(function () {
 
     function tick(event) {
         var deltaS = event.delta / 100;
-        //
-        background.x -= deltaS * 30;
-        if (background.x <= -bgSpriteW) {
-            background.x = stage.canvas.width;
+
+        if(runOnce) {
+            var myscore = setInterval(score, 1000);
+            var powerupGen = setInterval(genPowerup, 2000);
+            var topObs = setInterval(genTopObstacles, 1000);
+            var botObs = setInterval(genBottomObstacles, 1000);
+            runOnce = false;
         }
 
-        if (upPressed) {
-            var newy = player.y - 100;
-            createjs.Tween.get(player).to({y: newy}, 500, createjs.Ease.linear);
+        if(start) {
+            if(startText) {
+                stage.removeChild(startText);
+            }
 
-            upPressed = false;
+            background.x -= deltaS * 30;
+            if (background.x <= -bgSpriteW) {
+                background.x = stage.canvas.width;
+            }
+
+            if (upPressed) {
+                var newy = player.y - 100;
+                createjs.Tween.get(player).to({y: newy}, 500, createjs.Ease.linear);
+
+                upPressed = false;
+            }
+
+            if (player.y < stage.canvas.height - playerH) {
+                player.y += 2.5;
+            }
+
+            if (tickCounter >= 5) {
+
+                collisionObs();
+                tickCounter = 0;
+            }
+
+            moveObstacles();
+            playerCollision();
+            scoreText.text = parseFloat(finalScore);
+
+            tickCounter++;
+            stage.update();
         }
-
-        if (player.y < stage.canvas.height - playerH) {
-            player.y += 2.5;
-        }
-
-        if (tickCounter >= 5) {
-
-            collisionObs();
-            tickCounter = 0;
-        }
-
-        //if(a) {
-        //    genTopObstacles();
-        //    playerCollision();
-        //    a = false;
-        //}
-        playerCollision();
-        scoreText.text = parseFloat(finalScore);
-
-        tickCounter++;
-        moveObstacles();
-        stage.update();
     }
 
 
@@ -129,9 +134,17 @@ $(function () {
         scoreText.x = 20;
         scoreText.y = 10;
 
+        //startText.x = stageW/2 - startText
+        startText.textAlign = "center";
+        startText.textBaseline = "middle";
+        startText.x = stageW/2;
+        startText.y = stageH/2;
+        endText.x = stageW/2 - 170;
+        endText.y = stageH/2;
+
         powerupSprite = new createjs.Sprite(powerupSpritesheet);
 
-        stage.addChild(background, player, obstacleContainerTop, obstacleContainerBottom, powerupContainer, scoreText);
+        stage.addChild(background, player, obstacleContainerTop, obstacleContainerBottom, powerupContainer, scoreText, startText);
 
     }
 
@@ -246,13 +259,15 @@ $(function () {
     function playerCollision() {
         for (var j = 0; j < obstacleContainerTop.children.length; j++) {
             if ((player.x < obstacleContainerTop.children[j].x + obstacleContainerTop.children[j]._rectangle.width) && (player.x + playerW > obstacleContainerTop.children[j].x) && (player.y < obstacleContainerTop.children[j].y + obstacleContainerTop.children[j]._rectangle.height) && (playerH + player.y > obstacleContainerTop.children[j].y)) {
-
+                stage.addChild(endText);
+                start = false;
             }
         }
 
         for (var i = 0; i < obstacleContainerBottom.children.length; i++) {
             if ((player.x < obstacleContainerBottom.children[i].x + obstacleContainerBottom.children[i]._rectangle.width) && (player.x + playerW > obstacleContainerBottom.children[i].x) && (player.y < obstacleContainerBottom.children[i].y + obstacleContainerBottom.children[i]._rectangle.height) && (playerH + player.y > obstacleContainerBottom.children[i].y)) {
-
+                stage.addChild(endText);
+                start = false;
             }
         }
 

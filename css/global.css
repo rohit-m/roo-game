@@ -1,0 +1,17 @@
+body {
+    font-family:"Helvetica","Arial";
+}
+
+h3 {
+    font-weight:200;
+    font-size:3em;
+}
+
+section {
+    width:1024px;
+    margin:0 auto;
+}
+
+ul {
+    list-style:none;
+}
